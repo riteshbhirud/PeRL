@@ -66,22 +66,19 @@ Notably, the cost of reproducing the best Tina checkpoint stands at only \$9, an
 
 Run the following commands to install the dependencies.
 ```bash
-conda update -n base -c defaults conda -y
-conda install -n base -c conda-forge mamba -y
+conda create -n tina python=3.10 -y && conda activate tina
+./scripts/set/set_env.sh && conda deactivate
 
-mamba create -n tina python=3.10 -y && mamba activate tina
-./scripts/set/set_env.sh && mamba deactivate
-
-mamba create -n tina_eval python=3.11 -y && mamba activate tina_eval
-./scripts/set/set_env_eval.sh && mamba deactivate
+conda create -n tina_eval python=3.10 -y && conda activate tina_eval
+./scripts/set/set_env_eval.sh && conda deactivate
 
 # download the pre-trained models to the `CKPT_DIR` directory.
-./scripts/set/prepare.sh
+conda activate tina && ./scripts/set/prepare.sh
 ```
 
 ### Training & Evaluation
 
-* LoRA-based RL with GRPO: `./scripts/train/post_train_model_grpo.sh`
+* LoRA-based RL with GRPO: `conda activate tina && ./scripts/train/post_train_model_grpo.sh`
 
 <div style="text-align: center;">
   <img 
@@ -106,7 +103,7 @@ CKPT_DIR/
 │   │   └── ...
 ```
 
-* Re-evaluate baseline models: `./scripts/eval/eval_baselines.sh`
+* Re-evaluate baseline models: `conda activate tina_eval && ./scripts/eval/eval_baselines.sh`
 
 <div style="text-align: center;">
   <img 
@@ -115,7 +112,7 @@ CKPT_DIR/
     style="max-width: 30%; height: auto;">
     </div>
 
-* Evaluate post-trained models: `./scripts/eval/eval_post_train.sh`
+* Evaluate post-trained models: `conda activate tina_eval && ./scripts/eval/eval_post_train.sh`
 
 <div style="text-align: center;">
   <img 
