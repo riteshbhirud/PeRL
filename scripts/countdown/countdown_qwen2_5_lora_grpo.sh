@@ -17,11 +17,11 @@ CUDA_VISIBLE_DEVICES=0,1 ACCELERATE_LOG_LEVEL=info \
     --config.peft.use_peft true \
     --config.peft.task_type "CAUSAL_LM" \
     --config.peft.r 32 \
-    --config.peft.lora_alpha 32 \
-    --config.peft.lora_dropout 0.0 \
+    --config.peft.lora_alpha 128 \
+    --config.peft.lora_dropout 0.05 \
     --config.peft.total_step 1000 \
     --config.peft.target_modules '["q_proj","v_proj","k_proj","o_proj","up_proj","down_proj"]' \
-    --config.training.learning_rate 1e-4 \
+    --config.training.learning_rate 5e-6 \
     --config.training.beta 0.001 \
     --config.training.output_dir "${OUTPUT_DIR}" \
     --config.training.run_name "${OUTPUT_DIR}" \
@@ -35,13 +35,13 @@ CUDA_VISIBLE_DEVICES=0,1 ACCELERATE_LOG_LEVEL=info \
     --config.training.logging_steps 1 \
     --config.training.save_strategy "steps" \
     --config.training.save_steps 128 \
-    --config.training.max_steps 1024 \
+    --config.training.max_steps 450 \
     --config.training.use_vllm true \
     --config.training.lr_scheduler_type "linear" \
     --config.training.vllm_mode "colocate" \
     --config.training.vllm_gpu_memory_utilization 0.4 \
     --config.training.use_liger_kernel true \
-    --config.training.loss_type "dr_grpo" \
+    --config.training.loss_type "grpo" \
     --config.training.report_to '["wandb"]' \
     --config.logging.trackio_space_id "Open-Tinker/Open-Tinker" \
     --config.logging.trackio_project "grpo-lora-qwen2-5-3b" \

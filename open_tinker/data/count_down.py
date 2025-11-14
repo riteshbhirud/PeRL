@@ -71,6 +71,10 @@ def equation_reward_func(completions, target, nums, **kwargs):
                 rewards.append(0.0)  # 如果没有匹配到 <answer> 标签，奖励为 0
                 continue
             equation = match.group(1).strip()  # 提取 <answer> 标签中的内容
+            
+            # 如果 equation 中包含 "="，只取 "=" 之前的部分
+            if "=" in equation:
+                equation = equation.split("=")[0].strip()
             # 提取方程中的所有数字
             used_numbers = [int(n) for n in re.findall(r"\d+", equation)]
 
@@ -168,7 +172,7 @@ def load_count_down_dataset(
         },
         { 
             "role": "user",
-            "content": f"Using the numbers {numbers}, create an equation that equals {target}. You can use basic arithmetic operations (+, -, *, /) and each number can only be used once. Show your work in <think> </think> tags. And return the final equation and answer in <answer> </answer> tags, for example <answer> (1 + 2) / 3 = 1 </answer>."
+            "content": f"Using the numbers {numbers}, create an equation that equals {target}. You can use basic arithmetic operations (+, -, *, /) and each number can only be used once. Show your work in <think> </think> tags. And return ONLY the final equation in <answer> </answer> tags, for example <answer> (1 + 2) / 3 </answer>. Do NOT include the equal sign or the result in the answer tags."
         },
         {
             "role": "assistant",
@@ -176,7 +180,8 @@ def load_count_down_dataset(
         }]
         return {
                 "prompt": tokenizer.apply_chat_template(r1_prefix, tokenize=False, continue_final_message=True), 
-                "target": target
+                "target": target,
+                "nums": numbers
             }
 
     # convert our dataset to the r1 prompt
