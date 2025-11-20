@@ -1,19 +1,20 @@
-OUTPUT_DIR=outputs/grpo_full_qwen2_5_3b_$(date +%Y%m%d_%H%M%S)
+unset WANDB_DISABLED
+OUTPUT_DIR=outputs/grpo_lora_qwen2_5_1_5b_$(date +%Y%m%d_%H%M%S)
 # OUTPUT_DIR=outputs/debug
 LOG_FILE=${OUTPUT_DIR}/output.log
 
 mkdir -p ${OUTPUT_DIR}
 
-CUDA_VISIBLE_DEVICES=0,1,2,3 ACCELERATE_LOG_LEVEL=info \
+CUDA_VISIBLE_DEVICES=4,5,6,7 ACCELERATE_LOG_LEVEL=info \
     accelerate launch \
-    --main_process_port 29501 \
+    --main_process_port 29502 \
     --config_file scripts/accelerate/ds_zero2_4gpu.yaml \
     run.py train \
     --config.common.seed 42 \
     --config.common.debug false \
     --config.model.model_name_or_path "Qwen/Qwen2.5-1.5B-Instruct" \
     --config.model.dtype "bfloat16" \
-    --config.peft.use_peft false \
+    --config.peft.use_peft true \
     --config.peft.type "lora" \
     --config.peft.task_type "CAUSAL_LM" \
     --config.peft.r 32 \
@@ -47,6 +48,6 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 ACCELERATE_LOG_LEVEL=info \
     --config.logging.trackio_space_id "Open-Tinker/Open-Tinker" \
     --config.logging.trackio_project "grpo-full-qwen3-4b" \
     --config.logging.wandb_project "grpo-full-qwen3-4b" \
-    --config.dataset.dataset_name_or_path "open-r1/OpenR1-Math-220k" \
+    --config.dataset.dataset_name_or_path "RUC-AIBOX/STILL-3-RL-90K" \
     --config.dataset.example_numbers 1000000000 \
     &> ${LOG_FILE}

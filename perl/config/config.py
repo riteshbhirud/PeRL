@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Dict, Any
 
 @dataclass
 class CommonConfig:
@@ -52,6 +52,7 @@ class TrainingConfig:
     vllm_gpu_memory_utilization: float = 0.4
     use_liger_kernel: bool = True
     lr_scheduler_type: str = "cosine"
+    lr_scheduler_kwargs: Dict[str, Any] = field(default_factory=dict)
     loss_type: str = "dr_grpo"  # default is dapo which does not support by liger kernel lol
     report_to: List[str] = field(default_factory=lambda: ["wandb"])
     beta: float = 0.0
