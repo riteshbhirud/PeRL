@@ -1,8 +1,6 @@
 import torch
 import numpy as np
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from transformers import set_seed
-import peft
+from transformers import AutoModelForCausalLM
 from peft import LoraConfig, TaskType, get_peft_model
 import time
 import logging
