@@ -44,15 +44,16 @@ def initialize_lora_layer_plus(weights, rank, mode="min"):
     # We use the raw orthonormal vectors. 
     # This provides a strong, clean signal flow into the subspace 
     # without the "magnitude trap" of multiplying by tiny S.
-    lora_A_init = V_select 
+    # IMPORTANT: .contiguous() is required for distributed training
+    lora_A_init = V_select.contiguous()
 
     # 4. Initialize B (Zero)
     # Ensures identity mapping at initialization (W_new = W_base + 0)
-    lora_B_init = torch.zeros((weights.shape[0], rank), device=weights.device)
+    lora_B_init = torch.zeros((weights.shape[0], rank), device=weights.device).contiguous()
     
     # 5. Delta (Zero)
     # We do NOT subtract anything from the base model in MiLoRA++
-    delta = torch.zeros_like(weights)
+    delta = torch.zeros_like(weights).contiguous()
 
     return lora_A_init, lora_B_init, delta
 
