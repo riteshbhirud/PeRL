@@ -36,6 +36,7 @@ class TrainingConfig:
     learning_rate: float = 1e-5
     output_dir: str = ""
     run_name: str = ""
+    resume_from_checkpoint: str = None  # checkpoint 路径，或 "true" 自动从 output_dir 恢复最新 checkpoint
     remove_unused_columns: bool = False
     gradient_accumulation_steps: int = 16
     num_train_epochs: int = 1
