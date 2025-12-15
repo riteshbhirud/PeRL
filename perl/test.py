@@ -8,7 +8,7 @@ def param_test(
 ):
     model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
     results = {}
-    
+     
     for peft_type in PEFT_TYPE_TO_FUNCTION_MAPPING.keys():
         model = AutoModelForCausalLM.from_pretrained(model_name)
         
@@ -37,7 +37,7 @@ def param_test(
         except Exception as e:
             print(f"{peft_type}: Error - {str(e)}")
             results[peft_type] = None
-    
+             
     return results
 
 if __name__ == "__main__":
