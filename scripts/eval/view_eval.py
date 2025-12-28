@@ -17,18 +17,19 @@ def read_result_json(file_path: Path) -> Dict:
         return json.load(f)
 
 
-def extract_benchmark_data(result_data: Dict) -> Tuple[float, float, int, int]:
+def extract_benchmark_data(result_data: Dict) -> Tuple[float, float, float, int, int]:
     """
-    Extract accuracy, std, number of problems, and rollout_n from result.json.
+    Extract accuracy, std, max, number of problems, and rollout_n from result.json.
     
     Returns:
-        (accuracy, std, num_problems, rollout_n)
+        (accuracy, std, max, num_problems, rollout_n)
     """
     acc = result_data['summary']['avg']
     std = result_data['summary']['std']
+    max_val = result_data['summary']['max']
     num_problems = len(result_data['raw'])
     rollout_n = result_data['rollout_n']
-    return acc, std, num_problems, rollout_n
+    return acc, std, max_val, num_problems, rollout_n
 
 
 def process_folder(folder_path: str) -> List[Dict]:
@@ -44,7 +45,7 @@ def process_folder(folder_path: str) -> List[Dict]:
     folder = Path(folder_path)
     if not folder.exists():
         print(f"Error: Folder {folder_path} does not exist", file=sys.stderr)
-        sys.exit(1)
+        return []
     
     benchmarks = []
     
@@ -62,12 +63,13 @@ def process_folder(folder_path: str) -> List[Dict]:
         
         try:
             result_data = read_result_json(result_json_path)
-            acc, std, num_problems, rollout_n = extract_benchmark_data(result_data)
+            acc, std, max_val, num_problems, rollout_n = extract_benchmark_data(result_data)
             
             benchmarks.append({
                 'name': benchmark_name,
                 'acc': acc,
                 'std': std,
+                'max': max_val,
                 'num_problems': num_problems,
                 'rollout_n': rollout_n,
                 'total_samples': num_problems * rollout_n
@@ -99,13 +101,18 @@ def calculate_overall_acc(benchmarks: List[Dict]) -> float:
     return total_weighted_sum / total_samples
 
 
-def generate_markdown_table(benchmarks: List[Dict], overall_acc: float) -> str:
+def generate_markdown_table(benchmarks: List[Dict], overall_acc: float, folder_name: str = None) -> str:
     """Generate a markdown table with benchmark results."""
     lines = []
     
+    # Add folder name as header if provided
+    if folder_name:
+        lines.append(f"## {folder_name}")
+        lines.append("")
+    
     # Table header
-    lines.append("| Benchmark | Accuracy | Std | # Problems | N | Total Samples |")
-    lines.append("|-----------|----------|-----|------------|---|---------------|")
+    lines.append("| Benchmark | Accuracy | Std | Max | # Problems | N | Total Samples |")
+    lines.append("|-----------|----------|-----|-----|------------|---|---------------|")
     
     # Table rows for each benchmark
     for bench in benchmarks:
@@ -113,6 +120,7 @@ def generate_markdown_table(benchmarks: List[Dict], overall_acc: float) -> str:
             f"| {bench['name']} | "
             f"{bench['acc']:.4f} | "
             f"{bench['std']:.4f} | "
+            f"{bench['max']:.4f} | "
             f"{bench['num_problems']} | "
             f"{bench['rollout_n']} | "
             f"{bench['total_samples']} |"
@@ -122,6 +130,31 @@ def generate_markdown_table(benchmarks: List[Dict], overall_acc: float) -> str:
     total_samples = sum(b['total_samples'] for b in benchmarks)
     lines.append("")
     lines.append(f"**Overall Accuracy**: {overall_acc:.4f} (based on {total_samples} total samples)")
+    lines.append("")
+    
+    return "\n".join(lines)
+
+
+def generate_combined_markdown(all_folder_results: List[Tuple[str, List[Dict], float]], overall_acc: float) -> str:
+    """Generate a combined markdown output for multiple folders."""
+    lines = []
+    
+    # Process each folder
+    for folder_name, benchmarks, folder_acc in all_folder_results:
+        lines.append(generate_markdown_table(benchmarks, folder_acc, folder_name))
+    
+    # Add overall summary
+    lines.append("## Overall Summary (All Folders)")
+    lines.append("")
+    
+    # Collect all benchmarks from all folders
+    all_benchmarks = []
+    for _, benchmarks, _ in all_folder_results:
+        all_benchmarks.extend(benchmarks)
+    
+    # Calculate total samples across all folders
+    total_samples = sum(b['total_samples'] for b in all_benchmarks)
+    lines.append(f"**Overall Accuracy (All Folders)**: {overall_acc:.4f} (based on {total_samples} total samples)")
     
     return "\n".join(lines)
 
@@ -129,18 +162,43 @@ def generate_markdown_table(benchmarks: List[Dict], overall_acc: float) -> str:
 def main():
     """Main function."""
     if len(sys.argv) < 2:
-        print("Usage: python view_eval.py <folder_path>", file=sys.stderr)
+        print("Usage: python view_eval.py <folder_path1> [folder_path2] ...", file=sys.stderr)
         sys.exit(1)
     
-    folder_path = sys.argv[1]
-    benchmarks = process_folder(folder_path)
+    folder_paths = sys.argv[1:]
+    all_folder_results = []
+    all_benchmarks = []
     
-    if not benchmarks:
-        print("No benchmarks found!", file=sys.stderr)
+    # Process each folder
+    for folder_path in folder_paths:
+        folder = Path(folder_path)
+        folder_name = folder.name if folder.exists() else folder_path
+        
+        benchmarks = process_folder(folder_path)
+        
+        if not benchmarks:
+            print(f"Warning: No benchmarks found in {folder_path}, skipping", file=sys.stderr)
+            continue
+        
+        folder_acc = calculate_overall_acc(benchmarks)
+        all_folder_results.append((folder_name, benchmarks, folder_acc))
+        all_benchmarks.extend(benchmarks)
+    
+    if not all_folder_results:
+        print("No benchmarks found in any folder!", file=sys.stderr)
         sys.exit(1)
     
-    overall_acc = calculate_overall_acc(benchmarks)
-    markdown_table = generate_markdown_table(benchmarks, overall_acc)
+    # Calculate overall accuracy across all folders
+    overall_acc = calculate_overall_acc(all_benchmarks)
+    
+    # Generate combined markdown output
+    if len(all_folder_results) == 1:
+        # Single folder: use simple format
+        folder_name, benchmarks, _ = all_folder_results[0]
+        markdown_table = generate_markdown_table(benchmarks, overall_acc)
+    else:
+        # Multiple folders: use combined format
+        markdown_table = generate_combined_markdown(all_folder_results, overall_acc)
     
     print(markdown_table)
 

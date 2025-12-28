@@ -18,8 +18,7 @@ TEMPERATURE="0.7"
 TOP_P="0.9"
 MAX_NEW_TOKENS="31744"
 # MAX_NEW_TOKENS="65536"
-CUDA_VISIBLE_DEVICES=0,3
-DP_SIZE=2
+DP_SIZE=4
 TP_SIZE=1
 MAX_NUM_REQUEST="$((200 * ${DP_SIZE}))"
 GPU_MEMORY_UTILIZATION=0.95
@@ -41,7 +40,7 @@ function eval_model_with_adapter() {
 
   mkdir -p "${RESULT_DIR}"
   
-  CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES} python "${PROJECT_DIR}/perl/eval.py" \
+  CUDA_VISIBLE_DEVICES=1,2 python "${PROJECT_DIR}/perl/eval.py" \
     --prompt-format "open-r1" \
     --result-dir "${RESULT_DIR}" \
     --model "${MODEL_DIR}" \
@@ -62,7 +61,31 @@ function eval_model_with_adapter() {
 set +e
 
 eval_model_with_adapter \
-   "${PROJECT_DIR}/outputs/dapo_lora_fa_20251204_152725" \
+   "${PROJECT_DIR}/outputs/dapo_rslora_qwen2_5_1_5b_20251223_142342-eval" \
    "${BASE_MODEL_PATH}" \
-   "${PROJECT_DIR}/ckpts/dapo_lora_fa_20251204_152725/checkpoint-1024"
+   "${PROJECT_DIR}/outputs/dapo_rslora_qwen2_5_1_5b_20251223_142342/checkpoint-1024"
+  
+eval_model_with_adapter \
+   "${PROJECT_DIR}/outputs/dapo_lora_lr5_20251129_222821-eval" \
+   "${BASE_MODEL_PATH}" \
+   "${PROJECT_DIR}/ckpts/dapo_lora_lr5_20251129_222821/checkpoint-1024"
 
+eval_model_with_adapter \
+   "${PROJECT_DIR}/outputs/dapo_lora_r8_20251129_135342-eval" \
+   "${BASE_MODEL_PATH}" \
+   "${PROJECT_DIR}/ckpts/dapo_lora_r8_20251129_135342/checkpoint-1024"
+
+eval_model_with_adapter \
+   "${PROJECT_DIR}/outputs/dapo_lora_r16_qwen2_5_3b_20251124_104900-eval" \
+   "${BASE_MODEL_PATH}" \
+   "${PROJECT_DIR}/ckpts/dapo_lora_r16_qwen2_5_3b_20251124_104900/checkpoint-1024"
+
+eval_model_with_adapter \
+   "${PROJECT_DIR}/outputs/dr_grpo_lora_20251129_132413-eval" \aaa
+   "${BASE_MODEL_PATH}" \
+   "${PROJECT_DIR}/ckpts/dr_grpo_lora_20251129_132413/checkpoint-1024"
+
+eval_model_with_adapter \
+   "${PROJECT_DIR}/outputs/grpo_lora_20251130_192918-eval" \
+   "${BASE_MODEL_PATH}" \
+   "${PROJECT_DIR}/ckpts/dr_grpo_lora_20251130_192918/checkpoint-1024"
