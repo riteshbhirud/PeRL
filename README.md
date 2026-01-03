@@ -11,6 +11,23 @@
 
 </div>
 
+## News
+
+- [2025/12] We released our code, paper, and checkpoints!
+
+## About
+
+PeRL is the first large-scale evaluation of over 12 PEFT methodologies using the DeepSeek-R1-Distill family on complex mathematical reasoning benchmarks.
+
+**Key Finding:** Standard LoRA is suboptimal. Structural variants such as DoRA, AdaLoRA, and MiSS consistently outperform standard LoRA. Notably, DoRA (46.6% avg. accuracy) even surpasses full-parameter fine-tuning (44.9%) across multiple benchmarks.
+
+**The failure of SVD-based initialization.**
+Strategies like PiSSA and MiLORA experience significant performance degradation or total training collapse. This is due to a fundamental "spectral misalignment": these methods force updates on principal components, while RLVR intrinsically operates in the off-principal regime.
+
+**The Expressivity Floor.**
+While RLVR can tolerate moderate parameter reduction, extreme compression (e.g., VeRA, IA³, or Rank-1 adapters) creates an information bottleneck. Reasoning tasks require a minimum threshold of trainable capacity to successfully reorient policy circuits.
+
+
 ## Supported Parameter-Efficient Methods
 
 | Method | Status | Description |
