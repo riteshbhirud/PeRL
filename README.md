@@ -1,7 +1,7 @@
 <div align="center">
 <img src="https://pbs.twimg.com/media/G9uYc9HasAAWCm5?format=jpg&name=medium" alt="logo" width="600" margin="10px"></img>
   
-# PERL: Parameter-Efficient Reinforcement Learning  
+# PeRL: Parameter-Efficient Reinforcement Learning  
 > A minimal, modular, and lightning-fast framework for PEFT + RL.
 
 | [**AlphaXiv**](https://www.alphaxiv.org/abs/2512.23165)
