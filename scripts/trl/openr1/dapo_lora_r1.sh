@@ -1,35 +1,25 @@
-#! /bin/bash
-
-set -euo pipefail
-
-PROJECT_DIR="."
-LORA_RANK=32
-BASE_MODEL="/root/models/DeepSeek-R1-Distill-Qwen-1.5B"
-DATASET_PATH="open-r1/DAPO-Math-17k-Processed"
-DATASET_NAME="${DATASET_PATH##*/}"
-export LD_LIBRARY_PATH="/root/miniconda3/envs/perl/lib:/usr/local/nvidia/lib64:$LD_LIBRARY_PATH"
-
 unset WANDB_DISABLED
-OUTPUT_DIR="outputs/mem_dapo_lora_1_5b_r${LORA_RANK}_${DATASET_NAME}_$(date +%Y%m%d_%H%M%S)"
-mkdir -p ${OUTPUT_DIR}
+OUTPUT_DIR=outputs/dapo_lora_qwen_1_5b_r1_$(date +%Y%m%d_%H%M%S)
+# OUTPUT_DIR=outputs/debug
 LOG_FILE=${OUTPUT_DIR}/output.log
 
 export HF_ENDPOINT="https://hf-mirror.com"
+mkdir -p ${OUTPUT_DIR}
 
-ACCELERATE_LOG_LEVEL=info \
+CUDA_VISIBLE_DEVICES=0,1,2,3 ACCELERATE_LOG_LEVEL=info \
     accelerate launch \
     --main_process_port 29500 \
-    --config_file scripts/trl/accelerate/ds_zero2_8gpu.yaml \
+    --config_file scripts/trl/accelerate/ds_zero2_4gpu.yaml \
     run.py train \
     --config.common.seed 42 \
     --config.common.debug false \
-    --config.model.model_name_or_path "${BASE_MODEL}" \
+    --config.model.model_name_or_path "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B" \
     --config.model.dtype "bfloat16" \
     --config.peft.use_peft true \
     --config.peft.type "lora" \
     --config.peft.task_type "CAUSAL_LM" \
-    --config.peft.r "${LORA_RANK}" \
-    --config.peft.lora_alpha 64 \
+    --config.peft.r 1 \
+    --config.peft.lora_alpha 2 \
     --config.peft.lora_dropout 0.05 \
     --config.peft.total_step 1000 \
     --config.peft.target_modules '["q_proj","v_proj","k_proj","o_proj","up_proj","down_proj","gate_proj"]' \
@@ -38,7 +28,7 @@ ACCELERATE_LOG_LEVEL=info \
     --config.training.output_dir "${OUTPUT_DIR}" \
     --config.training.run_name "${OUTPUT_DIR}" \
     --config.training.remove_unused_columns false \
-    --config.training.gradient_accumulation_steps 4 \
+    --config.training.gradient_accumulation_steps 8 \
     --config.training.num_train_epochs 1 \
     --config.training.max_completion_length 16384 \
     --config.training.num_generations 8 \
@@ -62,6 +52,6 @@ ACCELERATE_LOG_LEVEL=info \
     --config.logging.trackio_space_id "Open-Tinker/Open-Tinker" \
     --config.logging.trackio_project "grpo-full-qwen3-4b" \
     --config.logging.wandb_project "grpo-full-qwen3-4b" \
-    --config.dataset.dataset_name_or_path "${DATASET_PATH}" \
+    --config.dataset.dataset_name_or_path "open-r1/DAPO-Math-17k-Processed" \
     --config.dataset.example_numbers 1000000000 \
     &> ${LOG_FILE}
