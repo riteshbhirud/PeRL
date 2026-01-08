@@ -10,6 +10,9 @@ __pycache__/
 ckpts
 .verl
 logs
+
+debug.json
+
 # C extensions
 *.so
 .litellm_cache/
