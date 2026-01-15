@@ -58,14 +58,46 @@ While RLVR can tolerate moderate parameter reduction, extreme compression (e.g.,
 
 ## Environment Setup
 
+PeRL is a lightweight, parameter-efficient training library built on top of TRL, verl, and slime. Our environment setup is designed to minimize dependencies for agile development. We recommend managing your development environment using [uv](https://docs.astral.sh/uv/).
+
+### Environment Setup Using `uv`
+
+1. **Create and Activate a Virtual Environment (Recommended)**
+
+We highly recommend using a dedicated Python virtual environment:
+
+```
+python -m venv .venv
+source .venv/bin/activate
+```
+
+2. **Install Core Dependencies**
+
+Use `uv` to install all primary dependencies from `requirements.txt`:
+
 ```
 uv pip install -r requirements.txt
 ```
 
+If you don't have `uv` installed, [follow the official instructions](https://docs.astral.sh/uv/installation/) to install it.
+
+3. **Install Performance-Enhancing Packages (Optional but Recommended)**
+
+Certain modules (like `flash-attn`) accelerate training, especially for large models. Install them as follows:
+
 ```
 uv pip install flash-attn --no-cache-dir --no-build-isolation
-python -c "import flash_attn" # verify
+python -c "import flash_attn"  # Verify the installation
 ```
+
+If you encounter installation issues with any optional packages (such as CUDA compatibility for `flash-attn`), refer to their [official documentation](https://github.com/Dao-AILab/flash-attention) for troubleshooting.
+
+### Additional Notes
+
+- For advanced experiments (e.g., multi-node training, distributed inference), you may want to customize or pin versions in `env/requirements_hard.txt`. 
+- If you encounter dependency or environment issues, opening an issue in this repo or our Discord is welcome.
+
+By following these steps, your environment will be ready for training and experimentation with PeRL.
 
 ## Training
 
