@@ -268,7 +268,7 @@ class GradientFlowCallback(TrainerCallback):
             except ImportError:
                 pass
 
-    def on_step_end(
+    def on_pre_optimizer_step(
         self,
         args: TrainingArguments,
         state: TrainerState,
@@ -276,7 +276,7 @@ class GradientFlowCallback(TrainerCallback):
         model: torch.nn.Module = None,
         **kwargs,
     ):
-        """Log gradient norms at the end of each step."""
+        """Log gradient norms BEFORE optimizer step (when gradients are still available)."""
         if self.tracker is None:
             return
 

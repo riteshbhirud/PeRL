@@ -86,12 +86,28 @@ def train(
 
     # 2. load and configure model
     logger.info(f"Loading model from {args.model.model_name_or_path}")
-    model = AutoModelForCausalLM.from_pretrained(
-        args.model.model_name_or_path,
-        torch_dtype= torch.bfloat16 if args.model.dtype == "bfloat16" else torch.float16,
-        attn_implementation="flash_attention_2"
-    )
-    logger.info(f"Model loaded successfully")
+
+    # Determine attention implementation (with fallback to SDPA if flash_attention_2 fails)
+    attn_impl = args.model.attn_implementation
+    try:
+        model = AutoModelForCausalLM.from_pretrained(
+            args.model.model_name_or_path,
+            torch_dtype= torch.bfloat16 if args.model.dtype == "bfloat16" else torch.float16,
+            attn_implementation=attn_impl
+        )
+        logger.info(f"Model loaded successfully with {attn_impl} attention")
+    except ImportError as e:
+        if attn_impl == "flash_attention_2":
+            logger.warning(f"flash_attention_2 failed ({e}), falling back to sdpa")
+            attn_impl = "sdpa"
+            model = AutoModelForCausalLM.from_pretrained(
+                args.model.model_name_or_path,
+                torch_dtype= torch.bfloat16 if args.model.dtype == "bfloat16" else torch.float16,
+                attn_implementation=attn_impl
+            )
+            logger.info(f"Model loaded successfully with {attn_impl} attention (fallback)")
+        else:
+            raise
 
     # 3. configure PEFT adapter
     if args.peft.use_peft:

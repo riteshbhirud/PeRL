@@ -136,6 +136,20 @@ tracker.create_heatmap(component='B', save_path='gradient_heatmap.png')
 - Gradient norms for `magnitude` (DoRA)
 - Per-module breakdown (q_proj, k_proj, v_proj, etc.)
 
+## Attention Implementation
+
+If you encounter flash-attention compatibility issues, you can use SDPA instead:
+
+```bash
+python run.py \
+    --config.model.attn_implementation sdpa \
+    ...
+```
+
+Options: `flash_attention_2` (default), `sdpa`, `eager`
+
+The training script will automatically fallback to SDPA if flash_attention_2 fails to load.
+
 ## Performance Overhead
 
 Expected overhead with tracking enabled:

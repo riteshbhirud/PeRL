@@ -11,6 +11,11 @@ OUTPUT_DIR="test_tracking_output"
 MAX_STEPS=100
 TRACKING_FREQUENCY=25
 
+# Attention implementation: "flash_attention_2", "sdpa", or "eager"
+# Use "sdpa" if flash-attention has compatibility issues (common on some systems)
+# The training script will auto-fallback to sdpa if flash_attention_2 fails
+ATTN_IMPL="${ATTN_IMPL:-sdpa}"
+
 echo "============================================================"
 echo "Phase 1C: Training with Mechanistic Tracking"
 echo "============================================================"
@@ -19,6 +24,7 @@ echo "Model: $MODEL"
 echo "Dataset: $DATASET"
 echo "Max steps: $MAX_STEPS"
 echo "Tracking frequency: $TRACKING_FREQUENCY"
+echo "Attention implementation: $ATTN_IMPL"
 echo "Output dir: $OUTPUT_DIR"
 echo ""
 
@@ -30,6 +36,7 @@ python run.py \
     --enable_tracking \
     --tracking_frequency $TRACKING_FREQUENCY \
     --config.model.model_name_or_path "$MODEL" \
+    --config.model.attn_implementation "$ATTN_IMPL" \
     --config.dataset.dataset_name_or_path "$DATASET" \
     --config.peft.type lora \
     --config.peft.r 16 \
@@ -39,8 +46,10 @@ python run.py \
     --config.training.save_steps 50 \
     --config.training.logging_steps 10 \
     --config.training.per_device_train_batch_size 1 \
-    --config.training.gradient_accumulation_steps 4 \
+    --config.training.gradient_accumulation_steps 8 \
+    --config.training.num_generations 8 \
     --config.training.use_vllm false \
+    --config.training.use_liger_kernel false \
     --config.common.debug true
 
 echo ""
