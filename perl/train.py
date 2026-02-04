@@ -11,6 +11,7 @@ from fire import Fire
 from perl.utils.logging import init_logger, logger
 from perl.data import load_dataset
 from perl.config.config import TrainConfig
+from perl.lora.adapter import apply_peft
 
 def fuzzy_jobs(
     args: TrainConfig
@@ -92,19 +93,69 @@ def train(
     )
     logger.info(f"Model loaded successfully")
 
-    # 3. configure lora
+    # 3. configure PEFT adapter
     if args.peft.use_peft:
-        logger.info(f"Detected PEFT configuration, configuring lora")
-        from perl.lora.adapter import apply_lora
-        optimizer, model = apply_lora(model, args)
-        logger.info(f"Lora configured successfully")
+        logger.info(f"Detected PEFT configuration, applying {args.peft.type} adapter")
+        optimizer, model = apply_peft(model, args)
+        logger.info(f"PEFT adapter ({args.peft.type}) configured successfully")
 
-    # 4.Training configuration
+    # 4. Setup mechanistic tracking (if enabled)
+    callbacks = []
+    spectral_tracker = None
+    gradient_tracker = None
+
+    # Determine tracking output directory
+    tracking_base_dir = args.tracker.tracking_output_dir or args.training.output_dir
+
+    # Print tracking summary if any tracking is enabled
+    if args.tracker.enable_spectral_tracking or args.tracker.enable_gradient_tracking:
+        from perl.utils.utils import print_tracking_info
+        print_tracking_info(args)
+
+    if args.tracker.enable_spectral_tracking and args.peft.use_peft:
+        from perl.trackers import SpectralTracker, SpectralTrackingCallback
+        spectral_save_dir = os.path.join(tracking_base_dir, 'spectral_logs')
+        spectral_tracker = SpectralTracker(
+            model=model,
+            log_frequency=args.tracker.spectral_log_frequency,
+            save_dir=spectral_save_dir,
+            peft_type=args.peft.type,
+            compute_full_svd=args.tracker.compute_full_svd,
+            max_layers_to_track=args.tracker.max_layers_to_track,
+        )
+        callbacks.append(SpectralTrackingCallback(
+            tracker=spectral_tracker,
+            save_on_train_end=True,
+            log_to_wandb=("wandb" in args.training.report_to or "trackio" in args.training.report_to),
+        ))
+        logger.info(f"Spectral tracking: {len(spectral_tracker.adapter_layers)} layers, "
+                    f"every {args.tracker.spectral_log_frequency} steps -> {spectral_save_dir}")
+
+    if args.tracker.enable_gradient_tracking and args.peft.use_peft:
+        from perl.trackers import GradientFlowTracker, GradientFlowCallback
+        gradient_save_dir = os.path.join(tracking_base_dir, 'gradient_logs')
+        gradient_tracker = GradientFlowTracker(
+            model=model,
+            log_frequency=args.tracker.gradient_log_frequency,
+            save_dir=gradient_save_dir,
+            track_adapter_only=args.tracker.track_adapter_only,
+            peft_type=args.peft.type,
+        )
+        callbacks.append(GradientFlowCallback(
+            tracker=gradient_tracker,
+            save_on_train_end=True,
+            log_to_wandb=("wandb" in args.training.report_to or "trackio" in args.training.report_to),
+            create_heatmaps=True,
+        ))
+        logger.info(f"Gradient tracking: {len(gradient_tracker.adapter_params)} params, "
+                    f"every {args.tracker.gradient_log_frequency} steps -> {gradient_save_dir}")
+
+    # 5. Training configuration
     training_args = GRPOConfig(
         **vars(args.training),
     )
 
-    # 5.Train
+    # 6. Train
     logger.info(f"Training model with GRPO")
     trainer = GRPOTrainer(
         model=model,
@@ -112,14 +163,43 @@ def train(
         reward_funcs=reward_functions,
         args=training_args,
         train_dataset=train_dataset,
-        optimizers=(optimizer, None) if optimizer is not None else (None, None)
+        optimizers=(optimizer, None) if optimizer is not None else (None, None),
+        callbacks=callbacks if callbacks else None,
     )
     
-    # 支持从 checkpoint 恢复训练
+    # 7. Support resuming from checkpoint
     resume_checkpoint = args.training.resume_from_checkpoint
     if resume_checkpoint == "true":
         resume_checkpoint = True
     trainer.train(resume_from_checkpoint=resume_checkpoint)
     logger.info(f"Training completed successfully")
+
+    # 8. Save model and spectral data
     trainer.save_model(training_args.output_dir)
     logger.info(f"Model saved to {training_args.output_dir}")
+
+    # Save tracking data (also saved via callback, but ensure final save)
+    tracking_base_dir = args.tracker.tracking_output_dir or args.training.output_dir
+
+    if spectral_tracker is not None:
+        final_spectral_path = os.path.join(tracking_base_dir, 'spectral_history_final.pt')
+        spectral_tracker.save(final_spectral_path)
+        logger.info(f"Final spectral history saved to {final_spectral_path}")
+
+        # Print summary statistics
+        summary = spectral_tracker.get_summary_stats()
+        logger.info(f"Spectral tracking summary: {summary.get('total_steps_logged', 0)} steps logged, "
+                    f"{summary.get('num_layers', 0)} layers tracked")
+
+    if gradient_tracker is not None:
+        final_gradient_path = os.path.join(tracking_base_dir, 'gradient_flow_final.pt')
+        gradient_tracker.save(final_gradient_path)
+        logger.info(f"Final gradient flow saved to {final_gradient_path}")
+
+        # Print summary statistics
+        summary = gradient_tracker.get_summary_stats()
+        logger.info(f"Gradient tracking summary: {summary.get('total_steps_logged', 0)} steps logged, "
+                    f"{summary.get('num_layers', 0)} layers tracked")
+
+    if spectral_tracker is not None or gradient_tracker is not None:
+        logger.info(f"All tracking data saved to {tracking_base_dir}")

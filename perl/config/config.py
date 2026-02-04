@@ -78,6 +78,20 @@ class DatasetConfig:
 
 
 @dataclass
+class TrackerConfig:
+    """Configuration for mechanistic analysis trackers"""
+    enable_spectral_tracking: bool = False  # Enable spectral tracking of adapter weights
+    enable_gradient_tracking: bool = False  # Enable gradient flow tracking
+    spectral_log_frequency: int = 100  # Log spectral metrics every N steps
+    gradient_log_frequency: int = 100  # Log gradient norms every N steps
+    track_adapter_only: bool = True  # Only track adapter parameters (not base model)
+    compute_full_svd: bool = True  # Compute full SVD (False = truncated for speed)
+    max_layers_to_track: int = None  # Limit layers to track (None = all)
+    save_with_checkpoints: bool = True  # Save spectral data with each checkpoint
+    tracking_output_dir: str = None  # Custom output directory for tracking data (default: {output_dir}/)
+
+
+@dataclass
 class TrainConfig:
     """Main training configuration"""
     common: CommonConfig = field(default_factory=CommonConfig)
@@ -86,3 +100,4 @@ class TrainConfig:
     training: TrainingConfig = field(default_factory=TrainingConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
+    tracker: TrackerConfig = field(default_factory=TrackerConfig)
