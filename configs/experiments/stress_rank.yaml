@@ -1,0 +1,325 @@
+# PeRL Experiment Configuration
+# Generated: 2026-02-05 01:42:46
+#
+# Usage:
+#   python scripts/run_experiments.py --config stress_rank.yaml
+#   python scripts/validate_configs.py --config /Users/ritesh/per/PeRL/configs/experiments/stress_rank.yaml
+#
+base:
+  description: Rank stress test (4 methods × 4 ranks × 2 seeds = 32 experiments)
+  model:
+    model_name_or_path: deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
+    dtype: bfloat16
+    attn_implementation: sdpa
+  dataset:
+    dataset_name_or_path: Jiayi-Pan/Countdown-Tasks-3to4
+  training:
+    max_steps: 1000
+    save_steps: 100
+    logging_steps: 10
+    per_device_train_batch_size: 4
+    gradient_accumulation_steps: 8
+    num_generations: 8
+    use_vllm: false
+    use_liger_kernel: false
+    report_to:
+      - wandb
+  tracker:
+    enable_spectral_tracking: true
+    enable_gradient_tracking: true
+    spectral_log_frequency: 100
+    gradient_log_frequency: 100
+  wandb:
+    use_wandb: true
+    project: peft-rlvr-mechanistic
+    log_spectral_images: true
+    log_gradient_images: true
+experiments:
+  - name: lora_r4_s42
+    peft:
+      type: lora
+      r: 4
+      lora_alpha: 8
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: lora_r4_s123
+    peft:
+      type: lora
+      r: 4
+      lora_alpha: 8
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: lora_r16_s42
+    peft:
+      type: lora
+      r: 16
+      lora_alpha: 32
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: lora_r16_s123
+    peft:
+      type: lora
+      r: 16
+      lora_alpha: 32
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: lora_r64_s42
+    peft:
+      type: lora
+      r: 64
+      lora_alpha: 128
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: lora_r64_s123
+    peft:
+      type: lora
+      r: 64
+      lora_alpha: 128
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: lora_r256_s42
+    peft:
+      type: lora
+      r: 256
+      lora_alpha: 512
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: lora_r256_s123
+    peft:
+      type: lora
+      r: 256
+      lora_alpha: 512
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: dora_r4_s42
+    peft:
+      type: dora
+      r: 4
+      lora_alpha: 8
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: dora_r4_s123
+    peft:
+      type: dora
+      r: 4
+      lora_alpha: 8
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: dora_r16_s42
+    peft:
+      type: dora
+      r: 16
+      lora_alpha: 32
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: dora_r16_s123
+    peft:
+      type: dora
+      r: 16
+      lora_alpha: 32
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: dora_r64_s42
+    peft:
+      type: dora
+      r: 64
+      lora_alpha: 128
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: dora_r64_s123
+    peft:
+      type: dora
+      r: 64
+      lora_alpha: 128
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: dora_r256_s42
+    peft:
+      type: dora
+      r: 256
+      lora_alpha: 512
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: dora_r256_s123
+    peft:
+      type: dora
+      r: 256
+      lora_alpha: 512
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: pissa_r4_s42
+    peft:
+      type: pissa
+      r: 4
+      lora_alpha: 8
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: pissa_r4_s123
+    peft:
+      type: pissa
+      r: 4
+      lora_alpha: 8
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: pissa_r16_s42
+    peft:
+      type: pissa
+      r: 16
+      lora_alpha: 32
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: pissa_r16_s123
+    peft:
+      type: pissa
+      r: 16
+      lora_alpha: 32
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: pissa_r64_s42
+    peft:
+      type: pissa
+      r: 64
+      lora_alpha: 128
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: pissa_r64_s123
+    peft:
+      type: pissa
+      r: 64
+      lora_alpha: 128
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: pissa_r256_s42
+    peft:
+      type: pissa
+      r: 256
+      lora_alpha: 512
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: pissa_r256_s123
+    peft:
+      type: pissa
+      r: 256
+      lora_alpha: 512
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: milora_r4_s42
+    peft:
+      type: milora
+      r: 4
+      lora_alpha: 8
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: milora_r4_s123
+    peft:
+      type: milora
+      r: 4
+      lora_alpha: 8
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: milora_r16_s42
+    peft:
+      type: milora
+      r: 16
+      lora_alpha: 32
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: milora_r16_s123
+    peft:
+      type: milora
+      r: 16
+      lora_alpha: 32
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: milora_r64_s42
+    peft:
+      type: milora
+      r: 64
+      lora_alpha: 128
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: milora_r64_s123
+    peft:
+      type: milora
+      r: 64
+      lora_alpha: 128
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123
+  - name: milora_r256_s42
+    peft:
+      type: milora
+      r: 256
+      lora_alpha: 512
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 42
+  - name: milora_r256_s123
+    peft:
+      type: milora
+      r: 256
+      lora_alpha: 512
+    training:
+      learning_rate: 1e-05
+    common:
+      seed: 123

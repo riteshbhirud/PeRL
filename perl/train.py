@@ -13,6 +13,149 @@ from perl.data import load_dataset
 from perl.config.config import TrainConfig
 from perl.lora.adapter import apply_peft
 
+def get_model_size(model_path: str) -> str:
+    """Extract model size from model path for tagging."""
+    model_path_lower = model_path.lower()
+    if "7b" in model_path_lower:
+        return "7B"
+    elif "1.5b" in model_path_lower or "1_5b" in model_path_lower:
+        return "1.5B"
+    elif "3b" in model_path_lower:
+        return "3B"
+    elif "14b" in model_path_lower:
+        return "14B"
+    return "unknown"
+
+
+def build_wandb_tags(args: TrainConfig) -> list:
+    """Build automatic tags for WandB based on config."""
+    tags = list(args.wandb.tags) if args.wandb.tags else []
+
+    # Add PEFT method tag
+    if args.peft.type:
+        tags.append(args.peft.type)
+
+    # Add seed tag
+    tags.append(f"seed{args.common.seed}")
+
+    # Add model size tag
+    if args.model.model_name_or_path:
+        model_size = get_model_size(args.model.model_name_or_path)
+        tags.append(model_size)
+
+    # Add rank tag
+    if args.peft.r:
+        tags.append(f"r{args.peft.r}")
+
+    # Add special condition tags
+    if args.peft.r and args.peft.r < 8:
+        tags.append("ultra_low_rank")
+    if args.peft.r and args.peft.r >= 128:
+        tags.append("high_rank")
+
+    if args.dataset.example_numbers and args.dataset.example_numbers < 5000:
+        tags.append("data_scarcity")
+
+    if args.tracker.enable_spectral_tracking:
+        tags.append("spectral_tracking")
+    if args.tracker.enable_gradient_tracking:
+        tags.append("gradient_tracking")
+
+    # Add stress test tag if detected from output dir
+    if args.training.output_dir and "stress" in args.training.output_dir.lower():
+        tags.append("stress_test")
+
+    return list(set(tags))  # Remove duplicates
+
+
+def init_wandb(args: TrainConfig) -> bool:
+    """Initialize WandB with comprehensive config and tags."""
+    if not args.wandb.use_wandb:
+        return False
+
+    if "wandb" not in args.training.report_to:
+        return False
+
+    try:
+        import wandb
+    except ImportError:
+        logger.warning("WandB not installed. Install with: pip install wandb")
+        return False
+
+    # Set offline mode if requested
+    if args.wandb.offline:
+        os.environ["WANDB_MODE"] = "offline"
+        logger.info("WandB running in offline mode")
+
+    # Build run name
+    model_size = get_model_size(args.model.model_name_or_path) if args.model.model_name_or_path else "unknown"
+    run_name = args.training.run_name or f"{args.peft.type}_{model_size}_r{args.peft.r}_seed{args.common.seed}"
+
+    # Build group name for related runs
+    group = args.wandb.group
+    if not group and args.peft.type:
+        group = f"{model_size}_{args.peft.type}"
+
+    # Build tags
+    tags = build_wandb_tags(args)
+
+    # Build comprehensive config
+    wandb_config = {
+        # Model settings
+        "model/name": args.model.model_name_or_path,
+        "model/dtype": args.model.dtype,
+        "model/attn_implementation": args.model.attn_implementation,
+        "model/size": model_size,
+
+        # PEFT settings
+        "peft/type": args.peft.type,
+        "peft/rank": args.peft.r,
+        "peft/alpha": args.peft.lora_alpha,
+        "peft/dropout": args.peft.lora_dropout,
+        "peft/target_modules": args.peft.target_modules,
+
+        # Training settings
+        "training/learning_rate": args.training.learning_rate,
+        "training/max_steps": args.training.max_steps,
+        "training/batch_size": args.training.per_device_train_batch_size,
+        "training/gradient_accumulation": args.training.gradient_accumulation_steps,
+        "training/num_generations": args.training.num_generations,
+        "training/loss_type": args.training.loss_type,
+        "training/lr_scheduler": args.training.lr_scheduler_type,
+
+        # Dataset settings
+        "dataset/name": args.dataset.dataset_name_or_path,
+        "dataset/example_numbers": args.dataset.example_numbers,
+
+        # Tracker settings
+        "tracker/spectral_enabled": args.tracker.enable_spectral_tracking,
+        "tracker/gradient_enabled": args.tracker.enable_gradient_tracking,
+        "tracker/spectral_frequency": args.tracker.spectral_log_frequency,
+        "tracker/gradient_frequency": args.tracker.gradient_log_frequency,
+
+        # Common settings
+        "seed": args.common.seed,
+    }
+
+    # Initialize WandB
+    wandb.init(
+        project=args.wandb.project,
+        entity=args.wandb.entity,
+        name=run_name,
+        group=group,
+        tags=tags,
+        notes=args.wandb.notes,
+        config=wandb_config,
+        reinit=True,  # Allow multiple inits in same process
+    )
+
+    logger.info(f"WandB initialized: project={args.wandb.project}, run={run_name}")
+    logger.info(f"WandB tags: {tags}")
+    logger.info(f"WandB URL: {wandb.run.get_url()}")
+
+    return True
+
+
 def fuzzy_jobs(
     args: TrainConfig
 ):
@@ -43,12 +186,8 @@ def fuzzy_jobs(
             )
             logger.info(f"Trackio initialized successfully")
         elif "wandb" in args.training.report_to:
-            import wandb
-            wandb.init(
-                name=args.training.run_name,
-                config=vars(args.training),
-            )
-            logger.info(f"Wandb initialized successfully")
+            # Use enhanced WandB initialization
+            init_wandb(args)
 
     return args
 

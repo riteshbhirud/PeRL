@@ -68,7 +68,22 @@ class LoggingConfig:
     """Logging configuration settings"""
     trackio_space_id: str = "Open-Tinker/Open-Tinker"
     trackio_project: str = "grpo-lora-qwen2-5-3b"
-    wandb_project: str = "grpo-lora-qwen2-5-3b"
+
+
+@dataclass
+class WandBConfig:
+    """Weights & Biases configuration settings"""
+    use_wandb: bool = True  # Enable WandB logging
+    project: str = "peft-rlvr-mechanistic"  # WandB project name
+    entity: str = None  # WandB entity (username or team), None uses default
+    group: str = None  # Group related runs (auto-generated if None)
+    tags: List[str] = field(default_factory=list)  # Custom tags for filtering
+    notes: str = None  # Run notes/description
+    offline: bool = False  # Run in offline mode (sync later)
+    log_model: bool = False  # Log model checkpoints to WandB
+    log_spectral_images: bool = True  # Log spectral analysis images
+    log_gradient_images: bool = True  # Log gradient heatmap images
+    log_frequency: int = 10  # Log basic metrics every N steps (matches logging_steps)
 
 
 @dataclass
@@ -102,3 +117,4 @@ class TrainConfig:
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     tracker: TrackerConfig = field(default_factory=TrackerConfig)
+    wandb: WandBConfig = field(default_factory=WandBConfig)

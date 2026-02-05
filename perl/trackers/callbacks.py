@@ -167,6 +167,20 @@ class SpectralTrackingCallback(TrainerCallback):
                 vals = list(mag_norms.values())
                 metrics_to_log['spectral/dora_magnitude_mean'] = sum(vals) / len(vals)
 
+        # Log representative layer metrics (middle layer for detailed tracking)
+        if self.tracker.adapter_layers:
+            middle_idx = len(self.tracker.adapter_layers) // 2
+            rep_layer = self.tracker.adapter_layers[middle_idx]
+            for metric_name in ['effective_rank', 'condition_number', 'spectral_gap']:
+                values = self.tracker.get_metric_across_layers(metric_name, step_idx=-1)
+                if values and rep_layer in values:
+                    metrics_to_log[f'spectral/rep_layer/{metric_name}'] = values[rep_layer]
+
+        # Log GPU memory stats
+        if torch.cuda.is_available():
+            metrics_to_log['system/gpu_memory_allocated_gb'] = torch.cuda.memory_allocated() / 1e9
+            metrics_to_log['system/gpu_memory_reserved_gb'] = torch.cuda.memory_reserved() / 1e9
+
         # Log to wandb
         if self._wandb:
             self._wandb.log(metrics_to_log, step=step)
@@ -341,6 +355,7 @@ class GradientFlowCallback(TrainerCallback):
             stats = summary['overall_stats']
             metrics_to_log['gradient/mean'] = stats.get('mean', 0)
             metrics_to_log['gradient/max'] = stats.get('max', 0)
+            metrics_to_log['gradient/std'] = stats.get('std', 0)
 
         # Per-component stats (e.g., A vs B gradients)
         if 'component_stats_final' in summary:
@@ -348,6 +363,16 @@ class GradientFlowCallback(TrainerCallback):
                 if isinstance(comp_stats, dict):
                     metrics_to_log[f'gradient/{comp}_mean'] = comp_stats.get('mean', 0)
                     metrics_to_log[f'gradient/{comp}_max'] = comp_stats.get('max', 0)
+                    metrics_to_log[f'gradient/{comp}_std'] = comp_stats.get('std', 0)
+
+        # Log number of layers and non-zero gradients
+        metrics_to_log['gradient/num_layers'] = summary.get('num_layers', 0)
+        metrics_to_log['gradient/total_steps'] = summary.get('total_steps_logged', 0)
+
+        # Log GPU memory stats
+        if torch.cuda.is_available():
+            metrics_to_log['system/gpu_memory_allocated_gb'] = torch.cuda.memory_allocated() / 1e9
+            metrics_to_log['system/gpu_memory_reserved_gb'] = torch.cuda.memory_reserved() / 1e9
 
         # Log to wandb
         if self._wandb and metrics_to_log:
@@ -358,11 +383,12 @@ class GradientFlowCallback(TrainerCallback):
             self._trackio.log(metrics_to_log, step=step)
 
     def _create_visualizations(self):
-        """Create heatmap visualizations for gradient flow."""
+        """Create heatmap visualizations for gradient flow and log to WandB."""
         if self.tracker is None:
             return
 
         save_dir = self.tracker.save_dir
+        wandb_images = {}
 
         # Create heatmaps for main components
         for component in ['A', 'B']:
@@ -374,6 +400,9 @@ class GradientFlowCallback(TrainerCallback):
                 )
                 if fig is not None:
                     import matplotlib.pyplot as plt
+                    # Save for WandB logging
+                    if self._wandb and os.path.exists(heatmap_path):
+                        wandb_images[f'gradient_heatmap_{component}'] = self._wandb.Image(heatmap_path)
                     plt.close(fig)
                     logger.info(f"[GradientFlowCallback] Created heatmap: {heatmap_path}")
             except Exception as e:
@@ -389,6 +418,8 @@ class GradientFlowCallback(TrainerCallback):
                 )
                 if fig is not None:
                     import matplotlib.pyplot as plt
+                    if self._wandb and os.path.exists(heatmap_path):
+                        wandb_images['gradient_heatmap_magnitude'] = self._wandb.Image(heatmap_path)
                     plt.close(fig)
                     logger.info(f"[GradientFlowCallback] Created DoRA magnitude heatmap: {heatmap_path}")
             except Exception as e:
@@ -402,10 +433,20 @@ class GradientFlowCallback(TrainerCallback):
             )
             if fig is not None:
                 import matplotlib.pyplot as plt
+                if self._wandb and os.path.exists(comparison_path):
+                    wandb_images['gradient_layer_comparison'] = self._wandb.Image(comparison_path)
                 plt.close(fig)
                 logger.info(f"[GradientFlowCallback] Created layer comparison plot: {comparison_path}")
         except Exception as e:
             logger.warning(f"[GradientFlowCallback] Failed to create layer comparison: {e}")
+
+        # Log all images to WandB at once
+        if self._wandb and wandb_images:
+            try:
+                self._wandb.log(wandb_images)
+                logger.info(f"[GradientFlowCallback] Logged {len(wandb_images)} images to WandB")
+            except Exception as e:
+                logger.warning(f"[GradientFlowCallback] Failed to log images to WandB: {e}")
 
 
 def create_tracking_callbacks(
