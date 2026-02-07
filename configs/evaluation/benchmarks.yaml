@@ -1,0 +1,227 @@
+# PeRL Evaluation Benchmark Configurations
+#
+# This file defines the supported benchmarks for evaluation.
+# Each benchmark specifies the dataset source, field mappings, and defaults.
+#
+# Usage:
+#   python scripts/evaluate_checkpoint.py \
+#       --checkpoint outputs/lora_r16_s42/checkpoint-1024 \
+#       --benchmark aime2024
+
+# =============================================================================
+# Default Generation Settings
+# =============================================================================
+defaults:
+  generation:
+    temperature: 0.0        # Use greedy decoding by default
+    top_p: 1.0
+    max_tokens: 4096
+    do_sample: false
+
+  system_prompt: |
+    You are a helpful assistant that solves math problems step by step.
+    Think through the problem carefully, showing your work.
+    Put your final answer in \boxed{} format at the end.
+
+# =============================================================================
+# AIME Benchmarks (American Invitational Mathematics Examination)
+# =============================================================================
+aime2024:
+  name: "AIME 2024"
+  description: "American Invitational Mathematics Examination 2024"
+  dataset_path: "AI-MO/aimo-validation-aime"
+  split: "train"
+  question_field: "problem"
+  answer_field: "answer"
+  id_field: "url"
+  difficulty_levels: null  # AIME doesn't have explicit difficulty
+  expected_format: "integer"  # AIME answers are integers 0-999
+  notes: |
+    AIME problems are challenging competition math problems.
+    Answers are integers between 0 and 999.
+
+aime2025:
+  name: "AIME 2025"
+  description: "American Invitational Mathematics Examination 2025"
+  dataset_path: "yentinglin/aime_2025"
+  split: "train"
+  question_field: "problem"
+  answer_field: "answer"
+
+aime:
+  name: "AIME (AI-MO)"
+  description: "AIME problems from AI-MO validation set"
+  dataset_path: "AI-MO/aimo-validation-aime"
+  split: "train"
+  question_field: "problem"
+  answer_field: "answer"
+
+# =============================================================================
+# MATH Benchmarks (Hendrycks MATH Dataset)
+# =============================================================================
+math500:
+  name: "MATH-500"
+  description: "500 problems from MATH dataset (HuggingFace curated)"
+  dataset_path: "HuggingFaceH4/MATH-500"
+  split: "test"
+  question_field: "problem"
+  answer_field: "answer"
+  category_field: "type"
+  difficulty_field: "level"
+  difficulty_levels:
+    - "Level 1"
+    - "Level 2"
+    - "Level 3"
+    - "Level 4"
+    - "Level 5"
+  categories:
+    - "Algebra"
+    - "Counting & Probability"
+    - "Geometry"
+    - "Intermediate Algebra"
+    - "Number Theory"
+    - "Prealgebra"
+    - "Precalculus"
+  expected_format: "latex_boxed"
+  notes: |
+    Problems span 7 mathematical categories and 5 difficulty levels.
+    Answers are typically in LaTeX \boxed{} format.
+
+math:
+  name: "MATH"
+  description: "Full MATH competition dataset by Hendrycks et al."
+  dataset_path: "hendrycks/competition_math"
+  split: "test"
+  question_field: "problem"
+  answer_field: "solution"  # Note: answer is in solution, needs extraction
+  category_field: "type"
+  difficulty_field: "level"
+  answer_extraction: "boxed"  # Extract answer from solution
+  notes: |
+    The 'solution' field contains the full solution with answer in \boxed{}.
+    Answer must be extracted from the solution text.
+
+math_train:
+  name: "MATH Training"
+  description: "MATH training split"
+  dataset_path: "hendrycks/competition_math"
+  split: "train"
+  question_field: "problem"
+  answer_field: "solution"
+  answer_extraction: "boxed"
+
+# =============================================================================
+# Competition Math
+# =============================================================================
+amc2023:
+  name: "AMC 2023"
+  description: "American Mathematics Competition 2023"
+  dataset_path: "zwhe99/amc23"
+  split: "test"
+  question_field: "problem"
+  answer_field: "answer"
+  expected_format: "multiple_choice_or_integer"
+
+hmmt2025:
+  name: "HMMT 2025"
+  description: "Harvard-MIT Mathematics Tournament 2025"
+  dataset_path: "FlagEval/HMMT_2025"
+  split: "train"
+  question_field: "problem"
+  answer_field: "answer"
+
+olympiad:
+  name: "OlympiadBench"
+  description: "Mathematical Olympiad problems"
+  dataset_path: "knoveleng/OlympiadBench"
+  split: "test"
+  question_field: "problem"
+  answer_field: "answer"
+  notes: |
+    Contains problems from various mathematical olympiads.
+    Difficulty varies significantly.
+
+# =============================================================================
+# Other Math Benchmarks
+# =============================================================================
+minerva:
+  name: "Minerva Math"
+  description: "Minerva mathematics benchmark"
+  dataset_path: "math-ai/minervamath"
+  split: "test"
+  question_field: "problem"
+  answer_field: "answer"
+
+gsm8k:
+  name: "GSM8K"
+  description: "Grade School Math 8K"
+  dataset_path: "gsm8k"
+  subset: "main"
+  split: "test"
+  question_field: "question"
+  answer_field: "answer"
+  answer_extraction: "extract_number"  # Answer format: "#### <number>"
+  notes: |
+    Elementary school level word problems.
+    Answer format includes explanation followed by "#### <final_answer>".
+
+# =============================================================================
+# Benchmark Groups
+# =============================================================================
+groups:
+  core:
+    description: "Core evaluation benchmarks"
+    benchmarks:
+      - aime2024
+      - math500
+
+  competition:
+    description: "Competition math benchmarks"
+    benchmarks:
+      - aime2024
+      - aime2025
+      - amc2023
+      - hmmt2025
+
+  full:
+    description: "All supported benchmarks"
+    benchmarks:
+      - aime2024
+      - aime2025
+      - math500
+      - math
+      - amc2023
+      - hmmt2025
+      - minerva
+      - olympiad
+
+  quick_test:
+    description: "Quick test with small subsets"
+    benchmarks:
+      - aime2024
+      - math500
+    max_problems: 10
+
+# =============================================================================
+# Answer Format Reference
+# =============================================================================
+answer_formats:
+  integer:
+    description: "Integer answer (e.g., 42)"
+    examples: ["42", "0", "-17"]
+
+  latex_boxed:
+    description: "LaTeX boxed format"
+    examples: ["\\boxed{42}", "\\boxed{\\frac{1}{2}}", "\\boxed{x^2 + 1}"]
+
+  expression:
+    description: "Mathematical expression"
+    examples: ["x^2 + 1", "\\sqrt{2}", "\\pi/4"]
+
+  fraction:
+    description: "Fraction (simplified)"
+    examples: ["1/2", "3/4", "\\frac{1}{2}"]
+
+  multiple_choice:
+    description: "Multiple choice (A, B, C, D, E)"
+    examples: ["A", "B", "C", "D", "E"]
