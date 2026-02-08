@@ -1,389 +1,560 @@
-# PeRL Experiment Configuration
-# Generated: 2026-02-05 01:42:46
-#
-# Usage:
-#   python scripts/run_experiments.py --config stress_data.yaml
-#   python scripts/validate_configs.py --config /Users/ritesh/per/PeRL/configs/experiments/stress_data.yaml
-#
 base:
-  description: Data size stress test (4 methods × 4 sizes × 2 seeds = 32 experiments)
   model:
     model_name_or_path: deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
+    attn_implementation: flash_attention_2
     dtype: bfloat16
-    attn_implementation: sdpa
   dataset:
-    dataset_name_or_path: Jiayi-Pan/Countdown-Tasks-3to4
+    dataset_name_or_path: open-r1/DAPO-Math-17k-Processed
   training:
-    max_steps: 1000
-    save_steps: 100
-    logging_steps: 10
+    max_steps: 512
     per_device_train_batch_size: 4
     gradient_accumulation_steps: 8
-    num_generations: 8
-    use_vllm: false
+    learning_rate: 1e-05
+    warmup_ratio: 0.1
+    save_steps: 128
+    logging_steps: 10
+    eval_steps: 128
     use_liger_kernel: false
+    gradient_checkpointing: true
     report_to:
-      - wandb
+    - wandb
+  peft:
+    r: 32
+    lora_alpha: 64
+    lora_dropout: 0.05
+    target_modules:
+    - q_proj
+    - v_proj
+    - k_proj
+    - o_proj
+    - up_proj
+    - down_proj
+    - gate_proj
   tracker:
     enable_spectral_tracking: true
     enable_gradient_tracking: true
     spectral_log_frequency: 100
     gradient_log_frequency: 100
+    save_trajectory: true
   wandb:
     use_wandb: true
     project: peft-rlvr-mechanistic
-    log_spectral_images: true
-    log_gradient_images: true
+    tags:
+    - stress-test
+    - data-scarcity
+  common:
+    seed: 42
+    output_dir: output/stress_data
 experiments:
-  - name: lora_d1k_s42
-    peft:
-      type: lora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 1000
-  - name: lora_d1k_s123
-    peft:
-      type: lora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 1000
-  - name: lora_d4k_s42
-    peft:
-      type: lora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 4000
-  - name: lora_d4k_s123
-    peft:
-      type: lora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 4000
-  - name: lora_d8k_s42
-    peft:
-      type: lora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 8500
-  - name: lora_d8k_s123
-    peft:
-      type: lora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 8500
-  - name: lora_d17k_s42
-    peft:
-      type: lora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 17000
-  - name: lora_d17k_s123
-    peft:
-      type: lora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 17000
-  - name: dora_d1k_s42
-    peft:
-      type: dora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 1000
-  - name: dora_d1k_s123
-    peft:
-      type: dora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 1000
-  - name: dora_d4k_s42
-    peft:
-      type: dora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 4000
-  - name: dora_d4k_s123
-    peft:
-      type: dora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 4000
-  - name: dora_d8k_s42
-    peft:
-      type: dora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 8500
-  - name: dora_d8k_s123
-    peft:
-      type: dora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 8500
-  - name: dora_d17k_s42
-    peft:
-      type: dora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 17000
-  - name: dora_d17k_s123
-    peft:
-      type: dora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 17000
-  - name: pissa_d1k_s42
-    peft:
-      type: pissa
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 1000
-  - name: pissa_d1k_s123
-    peft:
-      type: pissa
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 1000
-  - name: pissa_d4k_s42
-    peft:
-      type: pissa
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 4000
-  - name: pissa_d4k_s123
-    peft:
-      type: pissa
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 4000
-  - name: pissa_d8k_s42
-    peft:
-      type: pissa
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 8500
-  - name: pissa_d8k_s123
-    peft:
-      type: pissa
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 8500
-  - name: pissa_d17k_s42
-    peft:
-      type: pissa
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 17000
-  - name: pissa_d17k_s123
-    peft:
-      type: pissa
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 17000
-  - name: milora_d1k_s42
-    peft:
-      type: milora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 1000
-  - name: milora_d1k_s123
-    peft:
-      type: milora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 1000
-  - name: milora_d4k_s42
-    peft:
-      type: milora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 4000
-  - name: milora_d4k_s123
-    peft:
-      type: milora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 4000
-  - name: milora_d8k_s42
-    peft:
-      type: milora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 8500
-  - name: milora_d8k_s123
-    peft:
-      type: milora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 8500
-  - name: milora_d17k_s42
-    peft:
-      type: milora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 42
-    dataset:
-      example_numbers: 17000
-  - name: milora_d17k_s123
-    peft:
-      type: milora
-      r: 16
-      lora_alpha: 32
-    training:
-      learning_rate: 1e-05
-    common:
-      seed: 123
-    dataset:
-      example_numbers: 17000
+- name: lora_n1000_seed42
+  peft:
+    type: lora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 1000
+  common:
+    seed: 42
+  wandb:
+    run_name: lora_n1000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n1000
+    - lora
+- name: lora_n1000_seed43
+  peft:
+    type: lora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 1000
+  common:
+    seed: 43
+  wandb:
+    run_name: lora_n1000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n1000
+    - lora
+- name: lora_n2000_seed42
+  peft:
+    type: lora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 2000
+  common:
+    seed: 42
+  wandb:
+    run_name: lora_n2000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n2000
+    - lora
+- name: lora_n2000_seed43
+  peft:
+    type: lora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 2000
+  common:
+    seed: 43
+  wandb:
+    run_name: lora_n2000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n2000
+    - lora
+- name: lora_n4000_seed42
+  peft:
+    type: lora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 4000
+  common:
+    seed: 42
+  wandb:
+    run_name: lora_n4000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n4000
+    - lora
+- name: lora_n4000_seed43
+  peft:
+    type: lora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 4000
+  common:
+    seed: 43
+  wandb:
+    run_name: lora_n4000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n4000
+    - lora
+- name: lora_n8000_seed42
+  peft:
+    type: lora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 8000
+  common:
+    seed: 42
+  wandb:
+    run_name: lora_n8000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n8000
+    - lora
+- name: lora_n8000_seed43
+  peft:
+    type: lora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 8000
+  common:
+    seed: 43
+  wandb:
+    run_name: lora_n8000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n8000
+    - lora
+- name: dora_n1000_seed42
+  peft:
+    type: dora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 1000
+  common:
+    seed: 42
+  wandb:
+    run_name: dora_n1000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n1000
+    - dora
+- name: dora_n1000_seed43
+  peft:
+    type: dora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 1000
+  common:
+    seed: 43
+  wandb:
+    run_name: dora_n1000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n1000
+    - dora
+- name: dora_n2000_seed42
+  peft:
+    type: dora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 2000
+  common:
+    seed: 42
+  wandb:
+    run_name: dora_n2000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n2000
+    - dora
+- name: dora_n2000_seed43
+  peft:
+    type: dora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 2000
+  common:
+    seed: 43
+  wandb:
+    run_name: dora_n2000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n2000
+    - dora
+- name: dora_n4000_seed42
+  peft:
+    type: dora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 4000
+  common:
+    seed: 42
+  wandb:
+    run_name: dora_n4000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n4000
+    - dora
+- name: dora_n4000_seed43
+  peft:
+    type: dora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 4000
+  common:
+    seed: 43
+  wandb:
+    run_name: dora_n4000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n4000
+    - dora
+- name: dora_n8000_seed42
+  peft:
+    type: dora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 8000
+  common:
+    seed: 42
+  wandb:
+    run_name: dora_n8000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n8000
+    - dora
+- name: dora_n8000_seed43
+  peft:
+    type: dora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 8000
+  common:
+    seed: 43
+  wandb:
+    run_name: dora_n8000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n8000
+    - dora
+- name: pissa_n1000_seed42
+  peft:
+    type: pissa
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 1000
+  common:
+    seed: 42
+  wandb:
+    run_name: pissa_n1000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n1000
+    - pissa
+- name: pissa_n1000_seed43
+  peft:
+    type: pissa
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 1000
+  common:
+    seed: 43
+  wandb:
+    run_name: pissa_n1000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n1000
+    - pissa
+- name: pissa_n2000_seed42
+  peft:
+    type: pissa
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 2000
+  common:
+    seed: 42
+  wandb:
+    run_name: pissa_n2000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n2000
+    - pissa
+- name: pissa_n2000_seed43
+  peft:
+    type: pissa
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 2000
+  common:
+    seed: 43
+  wandb:
+    run_name: pissa_n2000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n2000
+    - pissa
+- name: pissa_n4000_seed42
+  peft:
+    type: pissa
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 4000
+  common:
+    seed: 42
+  wandb:
+    run_name: pissa_n4000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n4000
+    - pissa
+- name: pissa_n4000_seed43
+  peft:
+    type: pissa
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 4000
+  common:
+    seed: 43
+  wandb:
+    run_name: pissa_n4000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n4000
+    - pissa
+- name: pissa_n8000_seed42
+  peft:
+    type: pissa
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 8000
+  common:
+    seed: 42
+  wandb:
+    run_name: pissa_n8000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n8000
+    - pissa
+- name: pissa_n8000_seed43
+  peft:
+    type: pissa
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 8000
+  common:
+    seed: 43
+  wandb:
+    run_name: pissa_n8000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n8000
+    - pissa
+- name: adalora_n1000_seed42
+  peft:
+    type: adalora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 1000
+  common:
+    seed: 42
+  wandb:
+    run_name: adalora_n1000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n1000
+    - adalora
+- name: adalora_n1000_seed43
+  peft:
+    type: adalora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 1000
+  common:
+    seed: 43
+  wandb:
+    run_name: adalora_n1000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n1000
+    - adalora
+- name: adalora_n2000_seed42
+  peft:
+    type: adalora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 2000
+  common:
+    seed: 42
+  wandb:
+    run_name: adalora_n2000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n2000
+    - adalora
+- name: adalora_n2000_seed43
+  peft:
+    type: adalora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 2000
+  common:
+    seed: 43
+  wandb:
+    run_name: adalora_n2000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n2000
+    - adalora
+- name: adalora_n4000_seed42
+  peft:
+    type: adalora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 4000
+  common:
+    seed: 42
+  wandb:
+    run_name: adalora_n4000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n4000
+    - adalora
+- name: adalora_n4000_seed43
+  peft:
+    type: adalora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 4000
+  common:
+    seed: 43
+  wandb:
+    run_name: adalora_n4000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n4000
+    - adalora
+- name: adalora_n8000_seed42
+  peft:
+    type: adalora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 8000
+  common:
+    seed: 42
+  wandb:
+    run_name: adalora_n8000_seed42
+    tags:
+    - stress-test
+    - data-scarcity
+    - n8000
+    - adalora
+- name: adalora_n8000_seed43
+  peft:
+    type: adalora
+    r: 32
+    lora_alpha: 64
+  dataset:
+    max_train_samples: 8000
+  common:
+    seed: 43
+  wandb:
+    run_name: adalora_n8000_seed43
+    tags:
+    - stress-test
+    - data-scarcity
+    - n8000
+    - adalora

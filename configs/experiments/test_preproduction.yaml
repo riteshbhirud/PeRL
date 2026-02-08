@@ -1,0 +1,95 @@
+# Pre-Production Validation Test Configuration
+#
+# Purpose: Full-scale validation before production runs
+# - Full 1024-step training (not toy 10-50 steps)
+# - Real DAPO-Math-17k dataset (not Countdown)
+# - All tracking enabled
+# - Expected: ~3-4 hours on 1x A100
+#
+# This test catches issues that only appear in long runs and validates
+# tracking overhead is acceptable at scale.
+
+base:
+  model:
+    model_name_or_path: "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+    attn_implementation: "flash_attention_2"
+    dtype: "bfloat16"
+
+  dataset:
+    dataset_name_or_path: "open-r1/DAPO-Math-17k-Processed"
+
+  training:
+    max_steps: 1024
+    per_device_train_batch_size: 4
+    gradient_accumulation_steps: 8
+    learning_rate: 1.0e-5
+    warmup_ratio: 0.1
+    save_steps: 256
+    logging_steps: 10
+    eval_steps: 256
+    use_liger_kernel: false
+    gradient_checkpointing: true
+    report_to:
+      - wandb
+
+  peft:
+    r: 32
+    lora_alpha: 64
+    lora_dropout: 0.05
+    target_modules:
+      - q_proj
+      - v_proj
+      - k_proj
+      - o_proj
+      - up_proj
+      - down_proj
+      - gate_proj
+
+  tracker:
+    enable_spectral_tracking: true
+    enable_gradient_tracking: true
+    spectral_log_frequency: 100
+    gradient_log_frequency: 100
+    save_trajectory: true
+
+  wandb:
+    use_wandb: true
+    project: "peft-rlvr-preproduction"
+    tags:
+      - preproduction
+      - validation
+
+  common:
+    seed: 42
+    output_dir: "output/preproduction"
+
+experiments:
+  # DoRA pre-production validation
+  - name: "dora_preproduction"
+    peft:
+      type: "dora"
+      r: 32
+      lora_alpha: 64
+    common:
+      seed: 42
+    wandb:
+      run_name: "dora_preproduction_seed42"
+      tags:
+        - preproduction
+        - dora
+        - validation
+
+  # Optional: LoRA pre-production (run if DoRA succeeds)
+  - name: "lora_preproduction"
+    peft:
+      type: "lora"
+      r: 32
+      lora_alpha: 64
+    common:
+      seed: 42
+    wandb:
+      run_name: "lora_preproduction_seed42"
+      tags:
+        - preproduction
+        - lora
+        - validation
