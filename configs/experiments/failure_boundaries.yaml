@@ -1,0 +1,179 @@
+# Failure Boundaries Experiments (Session 2)
+# Purpose: Stress testing - when methods break
+# 8 experiments: Ultra-low rank (r=2), PiSSA rank recovery, Data scarcity
+# Time: ~6 days on 4x A100
+
+base:
+  model:
+    model_name_or_path: "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+    attn_implementation: "flash_attention_2"
+    dtype: "bfloat16"
+
+  dataset:
+    dataset_name_or_path: "open-r1/DAPO-Math-17k-Processed"
+
+  training:
+    max_steps: 512
+    per_device_train_batch_size: 2
+    gradient_accumulation_steps: 16
+    learning_rate: 1.0e-5
+    warmup_ratio: 0.1
+    save_strategy: "steps"
+    save_steps: 256
+    logging_steps: 10
+    use_liger_kernel: false
+    max_completion_length: 2048
+    num_generations: 2
+    max_prompt_length: 512
+    use_vllm: true
+    vllm_mode: "colocate"
+    vllm_gpu_memory_utilization: 0.3
+    loss_type: "dapo"
+    lr_scheduler_type: "cosine"
+    report_to:
+      - wandb
+
+  peft:
+    use_peft: true
+    task_type: "CAUSAL_LM"
+    lora_dropout: 0.05
+    target_modules:
+      - q_proj
+      - v_proj
+      - k_proj
+      - o_proj
+      - up_proj
+      - down_proj
+      - gate_proj
+
+  tracker:
+    enable_spectral_tracking: true
+    enable_gradient_tracking: true
+    spectral_log_frequency: 50
+    gradient_log_frequency: 50
+
+  wandb:
+    use_wandb: true
+    project: "peft-rlvr-mechanistic"
+    tags:
+      - failure_boundaries
+      - stress_test
+
+  common:
+    seed: 42
+    output_dir: "output/failure_boundaries"
+
+experiments:
+  # ============================================================
+  # Ultra-low rank tests (r=2)
+  # Question: Which methods survive at extreme low rank?
+  # ============================================================
+  - name: "pissa_r2"
+    peft:
+      type: "pissa"
+      r: 2
+      lora_alpha: 4
+    wandb:
+      tags:
+        - failure_boundaries
+        - pissa
+        - ultra_low_rank
+        - r2
+
+  - name: "dora_r2"
+    peft:
+      type: "dora"
+      r: 2
+      lora_alpha: 4
+    wandb:
+      tags:
+        - failure_boundaries
+        - dora
+        - ultra_low_rank
+        - r2
+
+  - name: "lora_r2"
+    peft:
+      type: "lora"
+      r: 2
+      lora_alpha: 4
+    wandb:
+      tags:
+        - failure_boundaries
+        - lora
+        - ultra_low_rank
+        - r2
+
+  # ============================================================
+  # PiSSA rank recovery tests
+  # Question: At what rank does PiSSA start working?
+  # ============================================================
+  - name: "pissa_r8"
+    peft:
+      type: "pissa"
+      r: 8
+      lora_alpha: 16
+    wandb:
+      tags:
+        - failure_boundaries
+        - pissa
+        - rank_recovery
+        - r8
+
+  - name: "pissa_r16"
+    peft:
+      type: "pissa"
+      r: 16
+      lora_alpha: 32
+    wandb:
+      tags:
+        - failure_boundaries
+        - pissa
+        - rank_recovery
+        - r16
+
+  # ============================================================
+  # Data scarcity tests (n=2000)
+  # Question: Which methods fail with limited data?
+  # ============================================================
+  - name: "pissa_n2000"
+    peft:
+      type: "pissa"
+      r: 32
+      lora_alpha: 64
+    dataset:
+      example_numbers: 2000
+    wandb:
+      tags:
+        - failure_boundaries
+        - pissa
+        - data_scarcity
+        - n2000
+
+  - name: "dora_n2000"
+    peft:
+      type: "dora"
+      r: 32
+      lora_alpha: 64
+    dataset:
+      example_numbers: 2000
+    wandb:
+      tags:
+        - failure_boundaries
+        - dora
+        - data_scarcity
+        - n2000
+
+  - name: "lora_n2000"
+    peft:
+      type: "lora"
+      r: 32
+      lora_alpha: 64
+    dataset:
+      example_numbers: 2000
+    wandb:
+      tags:
+        - failure_boundaries
+        - lora
+        - data_scarcity
+        - n2000

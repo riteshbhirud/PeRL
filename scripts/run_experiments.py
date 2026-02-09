@@ -183,6 +183,8 @@ def build_command(
     config: Dict[str, Any],
     base_output_dir: str,
     config_name: str,
+    accelerate_config: Optional[str] = None,
+    main_process_port: int = 29500,
 ) -> Tuple[List[str], str, str]:
     """
     Build the command line arguments for running an experiment.
@@ -192,6 +194,8 @@ def build_command(
         config: Merged configuration dictionary
         base_output_dir: Base directory for outputs
         config_name: Name of the config file (for organizing outputs)
+        accelerate_config: Path to accelerate config file (enables multi-GPU)
+        main_process_port: Port for distributed training coordination
 
     Returns:
         Tuple of (command list, output directory path, command string)
@@ -199,7 +203,16 @@ def build_command(
     # Determine output directory for this experiment
     output_dir = os.path.join(base_output_dir, config_name, experiment_name)
 
-    cmd = ["python", "run.py"]
+    # Build command with accelerate launch for multi-GPU training
+    if accelerate_config:
+        cmd = [
+            "accelerate", "launch",
+            "--main_process_port", str(main_process_port),
+            "--config_file", accelerate_config,
+            "run.py", "train"
+        ]
+    else:
+        cmd = ["python", "run.py", "train"]
 
     # Add all config sections as command line arguments
     def add_args(prefix: str, d: Dict):
@@ -509,6 +522,7 @@ def run_experiment(
     config: Dict[str, Any],
     dry_run: bool = False,
     gpu_id: Optional[int] = None,
+    cuda_devices: Optional[str] = None,
 ) -> ExperimentStatus:
     """
     Run a single experiment.
@@ -520,7 +534,8 @@ def run_experiment(
         output_dir: Output directory for the experiment
         config: Merged config for metadata
         dry_run: If True, just print the command
-        gpu_id: GPU ID to use (for CUDA_VISIBLE_DEVICES)
+        gpu_id: GPU ID to use (for single-GPU CUDA_VISIBLE_DEVICES)
+        cuda_devices: CUDA_VISIBLE_DEVICES string for multi-GPU (e.g., "0,1,2,3")
 
     Returns:
         ExperimentStatus with results
@@ -555,9 +570,12 @@ def run_experiment(
         start_time=start_time,
     )
 
-    # Prepare environment
+    # Prepare environment for distributed training
     env = os.environ.copy()
-    if gpu_id is not None:
+    if cuda_devices is not None:
+        env["CUDA_VISIBLE_DEVICES"] = cuda_devices
+        env["ACCELERATE_LOG_LEVEL"] = "info"
+    elif gpu_id is not None:
         env["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 
     try:
@@ -646,6 +664,7 @@ def run_experiments_sequential(
     status_file: str,
     dry_run: bool = False,
     use_progress_bar: bool = True,
+    cuda_devices: Optional[str] = None,
 ) -> List[Tuple[str, str]]:
     """
     Run experiments one at a time.
@@ -656,6 +675,7 @@ def run_experiments_sequential(
         status_file: Path to save status
         dry_run: If True, don't actually run
         use_progress_bar: If True, show tqdm progress bar
+        cuda_devices: CUDA_VISIBLE_DEVICES string for multi-GPU
 
     Returns:
         List of (name, error_message) for failed experiments
@@ -704,6 +724,7 @@ def run_experiments_sequential(
             output_dir=output_dir,
             config=config,
             dry_run=dry_run,
+            cuda_devices=cuda_devices,
         )
 
         run_status.experiments[name] = status
@@ -861,6 +882,9 @@ def run_experiments(
     dry_run: bool = False,
     gpu_ids: Optional[List[int]] = None,
     use_progress_bar: bool = True,
+    accelerate_config: Optional[str] = None,
+    cuda_devices: str = "0,1,2,3",
+    main_process_port: int = 29500,
 ) -> RunStatus:
     """
     Run experiments from a YAML config file.
@@ -875,6 +899,9 @@ def run_experiments(
         dry_run: If True, just print commands without executing
         gpu_ids: List of GPU IDs to use for parallel execution
         use_progress_bar: If True, show tqdm progress bar
+        accelerate_config: Path to accelerate config file for multi-GPU
+        cuda_devices: CUDA_VISIBLE_DEVICES string
+        main_process_port: Base port for distributed training
 
     Returns:
         RunStatus with results
@@ -908,6 +935,7 @@ def run_experiments(
     # Build list of experiments to run
     experiments_to_run = []
     skipped_count = 0
+    exp_index = 0  # Track experiment index for port assignment
 
     for exp in experiments:
         name = exp['name']
@@ -920,8 +948,17 @@ def run_experiments(
 
         # Merge config
         merged_config = merge_experiment_config(base_config, exp)
-        cmd, exp_output_dir, cmd_str = build_command(name, merged_config, output_dir, config_name)
+
+        # Build command with accelerate support
+        # Each experiment gets a unique port to avoid conflicts
+        exp_port = main_process_port + exp_index
+        cmd, exp_output_dir, cmd_str = build_command(
+            name, merged_config, output_dir, config_name,
+            accelerate_config=accelerate_config,
+            main_process_port=exp_port
+        )
         est_time = estimate_experiment_time(merged_config)
+        exp_index += 1
 
         # Check if already completed
         if skip_completed:
@@ -990,6 +1027,7 @@ def run_experiments(
             status_file,
             dry_run=False,
             use_progress_bar=use_progress_bar,
+            cuda_devices=cuda_devices,
         )
 
     # Finalize
@@ -1088,6 +1126,29 @@ Examples:
         action="store_true",
         help="Disable tqdm progress bar (use detailed output instead)",
     )
+    parser.add_argument(
+        "--accelerate_config",
+        type=str,
+        default="scripts/trl/accelerate/ds_zero2_4gpu.yaml",
+        help="Path to accelerate config file for multi-GPU training (default: scripts/trl/accelerate/ds_zero2_4gpu.yaml)",
+    )
+    parser.add_argument(
+        "--cuda_devices",
+        type=str,
+        default="0,1,2,3",
+        help="CUDA_VISIBLE_DEVICES to use (default: 0,1,2,3)",
+    )
+    parser.add_argument(
+        "--no_accelerate",
+        action="store_true",
+        help="Use single-GPU mode (python run.py) instead of accelerate launch",
+    )
+    parser.add_argument(
+        "--main_process_port",
+        type=int,
+        default=29500,
+        help="Base port for distributed training (default: 29500, incremented per experiment)",
+    )
 
     args = parser.parse_args()
 
@@ -1118,6 +1179,9 @@ Examples:
         print(f"\nTotal: {len(config.get('experiments', []))} experiments")
         sys.exit(0)
 
+    # Determine accelerate config
+    accelerate_config = None if args.no_accelerate else args.accelerate_config
+
     # Run experiments
     print("=" * 60)
     print("PeRL Experiment Runner")
@@ -1125,6 +1189,11 @@ Examples:
     print(f"Config: {args.config}")
     print(f"Output: {args.output_dir}")
     print(f"Mode: {'dry-run' if args.dry_run else 'parallel x' + str(args.parallel) if args.parallel > 1 else 'sequential'}")
+    if accelerate_config:
+        print(f"Accelerate: {accelerate_config}")
+        print(f"CUDA devices: {args.cuda_devices}")
+    else:
+        print("Accelerate: disabled (single-GPU mode)")
     if args.parallel > 1:
         print(f"Workers: {args.parallel}")
 
@@ -1139,6 +1208,9 @@ Examples:
             dry_run=args.dry_run,
             gpu_ids=gpu_ids,
             use_progress_bar=not args.no_progress,
+            accelerate_config=accelerate_config,
+            cuda_devices=args.cuda_devices,
+            main_process_port=args.main_process_port,
         )
 
         # Exit with error code if any experiments failed

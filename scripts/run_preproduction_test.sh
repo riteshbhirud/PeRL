@@ -148,19 +148,19 @@ if [ -f "run.py" ]; then
         --config.peft.lora_dropout 0.05 \
         --config.peft.target_modules '["q_proj","v_proj","k_proj","o_proj","up_proj","down_proj","gate_proj"]' \
         --config.training.max_steps 1024 \
-        --config.training.per_device_train_batch_size 4 \
-        --config.training.gradient_accumulation_steps 8 \
+        --config.training.per_device_train_batch_size 2 \
+        --config.training.gradient_accumulation_steps 16 \
         --config.training.learning_rate 1e-5 \
         --config.training.warmup_ratio 0.1 \
         --config.training.save_strategy "steps" \
         --config.training.save_steps 256 \
         --config.training.logging_steps 10 \
-        --config.training.max_completion_length 16384 \
-        --config.training.num_generations 8 \
+        --config.training.max_completion_length 4096 \
+        --config.training.num_generations 4 \
         --config.training.max_prompt_length 512 \
         --config.training.use_vllm true \
         --config.training.vllm_mode "colocate" \
-        --config.training.vllm_gpu_memory_utilization 0.4 \
+        --config.training.vllm_gpu_memory_utilization 0.25 \
         --config.training.use_liger_kernel false \
         --config.training.loss_type "dapo" \
         --config.training.lr_scheduler_type "cosine" \
